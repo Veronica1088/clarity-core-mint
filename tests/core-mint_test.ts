@@ -16,7 +16,7 @@ Clarinet.test({
       Tx.contractCall(
         "core-mint",
         "mint-nft",
-        [types.utf8("test metadata"), types.uint(10)],
+        [types.utf8("test-uri"), types.uint(100)],
         wallet_1.address
       )
     ]);
@@ -28,27 +28,42 @@ Clarinet.test({
 });
 
 Clarinet.test({
-  name: "Ensure can transfer NFT",
+  name: "Ensure can batch mint NFTs",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const wallet_1 = accounts.get("wallet_1")!;
-    const wallet_2 = accounts.get("wallet_2")!;
     
     let block = chain.mineBlock([
       Tx.contractCall(
         "core-mint",
-        "mint-nft",
-        [types.utf8("test metadata"), types.uint(10)],
-        wallet_1.address
-      ),
-      Tx.contractCall(
-        "core-mint",
-        "transfer-nft",
-        [types.uint(1), types.principal(wallet_1.address), types.principal(wallet_2.address)],
+        "batch-mint-nft",
+        [
+          types.list([types.utf8("uri-1"), types.utf8("uri-2")]),
+          types.list([types.uint(100), types.uint(200)])
+        ],
         wallet_1.address
       )
     ]);
     
-    assertEquals(block.receipts.length, 2);
-    block.receipts[1].result.expectOk().expectBool(true);
+    assertEquals(block.receipts.length, 1);
+    block.receipts[0].result.expectOk();
+  }
+});
+
+Clarinet.test({
+  name: "Ensure contract pause works",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    
+    let block = chain.mineBlock([
+      Tx.contractCall(
+        "core-mint",
+        "set-contract-pause",
+        [types.bool(true)],
+        deployer.address
+      )
+    ]);
+    
+    assertEquals(block.receipts.length, 1);
+    block.receipts[0].result.expectOk();
   }
 });
